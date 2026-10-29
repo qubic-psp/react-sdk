@@ -1,0 +1,92 @@
+{
+  "name": "@qubiq/psp-react",
+  "version": "0.1.0",
+  "description": "React component for the PSP payment widget: embeds the payment page in an iframe and reports the invoice status",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.cts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./vanilla": {
+      "import": {
+        "types": "./dist/vanilla.d.ts",
+        "default": "./dist/vanilla.js"
+      },
+      "require": {
+        "types": "./dist/vanilla.d.cts",
+        "default": "./dist/vanilla.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "vanilla",
+    "CHANGELOG.md"
+  ],
+  "keywords": [
+    "psp",
+    "payments",
+    "crypto",
+    "usdt",
+    "checkout",
+    "payment-widget",
+    "iframe",
+    "react"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint . --max-warnings 0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lockfile:lint": "lockfile-lint --path yarn.lock --type yarn --allowed-hosts yarn --validate-https --validate-integrity",
+    "package:check": "publint --strict --pack npm && attw --pack .",
+    "prepack": "yarn build",
+    "ci": "yarn lockfile:lint && yarn typecheck && yarn lint && yarn format:check && yarn test && yarn build && yarn package:check && yarn smoke",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
+    "@testing-library/dom": "^10",
+    "@testing-library/react": "^16.3",
+    "@types/node": "^18.19.130",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9.39",
+    "eslint-plugin-react-hooks": "^7",
+    "jsdom": "^26",
+    "lockfile-lint": "^4.14",
+    "prettier": "^3.6",
+    "publint": "^0.3.25",
+    "react": "^19",
+    "react-dom": "^19",
+    "tsup": "^8.5",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46",
+    "vitest": "^3.2"
+  }
+}

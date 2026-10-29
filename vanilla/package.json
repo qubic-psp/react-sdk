@@ -1,0 +1,6 @@
+{
+  "main": "../dist/vanilla.cjs",
+  "module": "../dist/vanilla.js",
+  "types": "../dist/vanilla.d.cts",
+  "sideEffects": false
+}
