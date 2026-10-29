@@ -36,6 +36,7 @@ jobs:
       - name: Pack the tarball to publish
         id: pack
         run: |
+          mkdir -p dist-pack  # npm pack does not create the destination folder
           npm pack --pack-destination dist-pack
           file=$(ls dist-pack/*.tgz)
           echo "file=$file" >> "$GITHUB_OUTPUT"
