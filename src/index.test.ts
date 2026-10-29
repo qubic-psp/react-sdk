@@ -12,7 +12,8 @@ describe('package entries', () => {
   });
 
   it('export only the documented values', () => {
-    expect(Object.keys(main).sort()).toEqual(['PspCheckout', 'VERSION']);
-    expect(Object.keys(vanilla).sort()).toEqual(['VERSION', 'mountPspCheckout']);
+    expect(Object.keys(main).sort()).toEqual(['PSP_CHECKOUT_ORIGIN', 'PspCheckout', 'VERSION']);
+    expect(main.PSP_CHECKOUT_ORIGIN).toBe('https://pay.psp.qubiq.cc');
+    expect(Object.keys(vanilla).sort()).toEqual(['PSP_CHECKOUT_ORIGIN', 'VERSION', 'mountPspCheckout']);
   });
 });

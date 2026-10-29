@@ -2,7 +2,8 @@
 import { vi } from 'vitest';
 import type { InvoiceStatus, PspCheckoutCallbacks } from '../src/types';
 
-export const ORIGIN = 'https://pay.psp.example';
+// The default checkoutOrigin of the package
+export const ORIGIN = 'https://pay.psp.qubiq.cc';
 // The token of vector 1 of gateway 20.4 in shape: v1.<payload>.<43 characters of signature>
 export const URL_1 = `${ORIGIN}/#v1.eyJrIjoicHNwX3BrX3Rlc3RfM0tkOUxtMlF4N1J0NVZiOE53MUhjNFpwIn0.${'a'.repeat(43)}`;
 export const URL_2 = `${ORIGIN}/#v1.eyJrIjoicHNwX3BrX3Rlc3RfM0tkOUxtMlF4N1J0NVZiOE53MUhjNFpwIn0.${'b'.repeat(43)}`;
@@ -42,3 +43,20 @@ export const spies = () => ({
   onExpired: vi.fn<Callback<'onExpired'>>(),
   onError: vi.fn<Callback<'onError'>>(),
 });
+
+/**
+ * Calls `onSrc(iframe)` synchronously right after an iframe gets its `src` — the earliest moment the page could
+ * post its first message. Restore with `vi.restoreAllMocks()`.
+ */
+export function onFrameSrc(onSrc: (iframe: HTMLIFrameElement) => void): void {
+  // eslint-disable-next-line @typescript-eslint/unbound-method -- called with the element as `this` below
+  const original = HTMLIFrameElement.prototype.setAttribute;
+  vi.spyOn(HTMLIFrameElement.prototype, 'setAttribute').mockImplementation(function (
+    this: HTMLIFrameElement,
+    name: string,
+    value: string,
+  ) {
+    original.call(this, name, value);
+    if (name === 'src') onSrc(this);
+  });
+}

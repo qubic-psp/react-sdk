@@ -23,5 +23,7 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["src", "test", "*.config.ts"]
+  "include": ["src", "test", "*.config.ts"],
+  // Checked by yarn smoke against the installed tarball, not against the sources
+  "exclude": ["test/smoke"]
 }

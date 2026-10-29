@@ -2,6 +2,7 @@
 import type { ComponentProps, ReactElement } from 'react';
 import { describe, expectTypeOf, it } from 'vitest';
 import {
+  PSP_CHECKOUT_ORIGIN,
   PspCheckout,
   type InvoiceStatus,
   type PspCheckoutErrorCode,
@@ -62,6 +63,8 @@ describe('public API', () => {
     expectTypeOf<ComponentProps<typeof PspCheckout>>().toEqualTypeOf<PspCheckoutProps>();
     expectTypeOf<PspCheckoutProps['url']>().toEqualTypeOf<string>();
     expectTypeOf<PspCheckoutProps>().toHaveProperty('minHeight').toEqualTypeOf<number | undefined>();
+    expectTypeOf<PspCheckoutProps>().toHaveProperty('checkoutOrigin').toEqualTypeOf<string | undefined>();
+    expectTypeOf<typeof PSP_CHECKOUT_ORIGIN>().toEqualTypeOf<'https://pay.psp.qubiq.cc'>();
     expectTypeOf<NonNullable<PspCheckoutProps['onStatusChange']>>().parameters.toEqualTypeOf<
       [InvoiceStatus, PspCheckoutStatusSource]
     >();
@@ -73,7 +76,7 @@ describe('public API', () => {
 
     // A handler may take fewer parameters, and the url alone is enough
     const props: PspCheckoutProps = {
-      url: 'https://pay.psp.example/#t',
+      url: 'https://pay.psp.qubiq.cc/#t',
       onError: (code) => {
         expectTypeOf(code).toEqualTypeOf<PspCheckoutErrorCode>();
       },
@@ -91,5 +94,6 @@ describe('public API', () => {
     expectTypeOf(mountPspCheckout).returns.toEqualTypeOf<PspCheckoutInstance>();
     expectTypeOf<PspCheckoutInstance['iframe']>().toEqualTypeOf<HTMLIFrameElement | null>();
     expectTypeOf<MountPspCheckoutOptions['onPaid']>().toEqualTypeOf<PspCheckoutProps['onPaid']>();
+    expectTypeOf<MountPspCheckoutOptions['checkoutOrigin']>().toEqualTypeOf<string | undefined>();
   });
 });

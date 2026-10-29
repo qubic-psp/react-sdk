@@ -36,6 +36,8 @@ export default tseslint.config(
     },
   },
   { files: ['**/*.js', '**/*.mjs', '**/*.cjs'], extends: [tseslint.configs.disableTypeChecked] },
+  // The smoke consumers import the installed package, outside the TypeScript project
+  { files: ['test/smoke/**'], extends: [tseslint.configs.disableTypeChecked] },
   // The CommonJS smoke consumer checks require() of the package on purpose
   { files: ['**/*.cjs'], rules: { '@typescript-eslint/no-require-imports': 'off' } },
   {

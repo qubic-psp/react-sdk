@@ -1,30 +1,51 @@
 import { describe, expect, it, vi } from 'vitest';
-import { INVOICE_ID, URL_1, message, ready, resize, spies, status } from '../test/helpers';
+import { INVOICE_ID, ORIGIN, URL_1, message, ready, resize, spies, status } from '../test/helpers';
 import {
   DEFAULT_MIN_HEIGHT,
   MAX_HEIGHT,
-  checkoutOrigin,
+  PSP_CHECKOUT_ORIGIN,
   clampHeight,
   createSession,
   initialHeight,
   invoke,
+  linkOrigin,
   parseMessage,
 } from './protocol';
 
-describe('checkoutOrigin', () => {
-  it.each([
-    [URL_1, 'https://pay.psp.example'],
-    ['https://pay.psp.qubiq.cc/#v1.a.b', 'https://pay.psp.qubiq.cc'],
-    ['https://pay.psp.qubiq.cc:8443/checkout/#t', 'https://pay.psp.qubiq.cc:8443'],
-    ['http://localhost:5180/#v1.a.b', 'http://localhost:5180'],
-    ['http://127.0.0.1:4800/#t', 'http://127.0.0.1:4800'],
-    ['http://[::1]:4800/#t', 'http://[::1]:4800'],
-  ])('accepts %s', (url, origin) => {
-    expect(checkoutOrigin(url)).toBe(origin);
+describe('linkOrigin', () => {
+  it('takes https://pay.psp.qubiq.cc by default', () => {
+    expect(PSP_CHECKOUT_ORIGIN).toBe('https://pay.psp.qubiq.cc');
+    expect(linkOrigin(URL_1)).toBe(ORIGIN);
+    expect(linkOrigin('https://pay.psp.qubiq.cc/checkout/?a=1#t')).toBe(ORIGIN);
   });
 
   it.each([
-    ['plain http outside localhost', 'http://pay.psp.qubiq.cc/#v1.a.b'],
+    ['https://pay.psp.qubiq.cc:8443/#t', 'https://pay.psp.qubiq.cc:8443', 'https://pay.psp.qubiq.cc:8443'],
+    ['https://pay.stage.example/#v1.a.b', 'https://pay.stage.example/', 'https://pay.stage.example'],
+    ['https://PAY.stage.example/#t', 'https://pay.stage.example', 'https://pay.stage.example'],
+    ['http://localhost:5180/#v1.a.b', 'http://localhost:5180', 'http://localhost:5180'],
+    ['http://127.0.0.1:4800/#t', 'http://127.0.0.1:4800', 'http://127.0.0.1:4800'],
+    ['http://[::1]:4800/#t', 'http://[::1]:4800', 'http://[::1]:4800'],
+  ])('accepts %s for the origin %s', (url, expected, origin) => {
+    expect(linkOrigin(url, expected)).toBe(origin);
+  });
+
+  it.each([
+    ['another host', 'https://evil.example/#v1.a.b'],
+    ['a look-alike host', 'https://pay.psp.qubiq.cc.evil.example/#t'],
+    ['a subdomain', 'https://x.pay.psp.qubiq.cc/#t'],
+    ['another port', 'https://pay.psp.qubiq.cc:444/#t'],
+    ['plain http of the same host', 'http://pay.psp.qubiq.cc/#t'],
+    ['a local page', 'http://localhost:5180/#t'],
+  ])('refuses %s by default', (_name, url) => {
+    expect(linkOrigin(url)).toBeNull();
+  });
+
+  it('refuses a platform link when another origin is expected', () => {
+    expect(linkOrigin(URL_1, 'http://localhost:5180')).toBeNull();
+  });
+
+  it.each([
     ['no fragment', 'https://pay.psp.qubiq.cc/'],
     ['an empty fragment', 'https://pay.psp.qubiq.cc/#'],
     ['a relative url', '/#v1.a.b'],
@@ -36,11 +57,25 @@ describe('checkoutOrigin', () => {
     ['too long', `https://pay.psp.qubiq.cc/#${'a'.repeat(8192)}`],
     ['not a url', 'pay.psp.qubiq.cc/#t'],
   ])('refuses %s', (_name, url) => {
-    expect(checkoutOrigin(url)).toBeNull();
+    expect(linkOrigin(url)).toBeNull();
   });
 
-  it.each([undefined, null, 1, {}, ['https://pay.psp.qubiq.cc/#t']])('refuses a non-string %j', (value) => {
-    expect(checkoutOrigin(value)).toBeNull();
+  it.each([undefined, null, 1, {}, ['https://pay.psp.qubiq.cc/#t']])('refuses a non-string url %j', (value) => {
+    expect(linkOrigin(value)).toBeNull();
+  });
+
+  it.each([
+    ['plain http outside localhost', 'http://pay.psp.qubiq.cc'],
+    ['a path', 'https://pay.psp.qubiq.cc/pay'],
+    ['a query', 'https://pay.psp.qubiq.cc/?x=1'],
+    ['a fragment', 'https://pay.psp.qubiq.cc/#x'],
+    ['a login', 'https://u@pay.psp.qubiq.cc'],
+    ['no scheme', 'pay.psp.qubiq.cc'],
+    ['an empty string', ''],
+    ['null', null],
+    ['a number', 1],
+  ])('refuses an expected origin with %s', (_name, expected) => {
+    expect(linkOrigin('https://pay.psp.qubiq.cc/#t', expected)).toBeNull();
   });
 });
 

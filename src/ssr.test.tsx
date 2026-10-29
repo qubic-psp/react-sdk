@@ -12,14 +12,16 @@ describe('server render', () => {
     expect(typeof document).toBe('undefined');
   });
 
-  it('renders the iframe, so the page starts loading before hydration', () => {
+  it('renders the iframe without src', () => {
     const html = renderToString(
       <StrictMode>
         <PspCheckout url={URL_1} title="Payment for order 10530" minHeight={520} className="checkout" />
       </StrictMode>,
     );
     expect(html).toMatch(/^<iframe /);
-    expect(html).toContain(`src="${URL_1}"`);
+    // No src: the page loads after hydration, when the component listens to it
+    expect(html).not.toContain('src=');
+    expect(html).not.toContain(URL_1);
     expect(html).toContain('title="Payment for order 10530"');
     expect(html).toContain('allow="clipboard-write"');
     expect(html).toMatch(/referrerPolicy="no-referrer"/i);
@@ -31,7 +33,7 @@ describe('server render', () => {
 
   it('renders nothing for an invalid url and calls nothing', () => {
     const onError = vi.fn();
-    expect(renderToStaticMarkup(<PspCheckout url="http://pay.psp.example/#t" onError={onError} />)).toBe('');
+    expect(renderToStaticMarkup(<PspCheckout url="https://evil.example/#t" onError={onError} />)).toBe('');
     expect(onError).not.toHaveBeenCalled();
   });
 });

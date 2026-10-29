@@ -7,7 +7,7 @@ import {
   type PspCheckoutEvent,
   type PspCheckoutProps,
 } from '@qubiq/psp-react';
-import { mountPspCheckout, type PspCheckoutInstance } from '@qubiq/psp-react/vanilla';
+import { PSP_CHECKOUT_ORIGIN, mountPspCheckout, type PspCheckoutInstance } from '@qubiq/psp-react/vanilla';
 
 export function OrderPayment({ url }: { url: string }) {
   const [status, setStatus] = useState<InvoiceStatus | null>(null);
@@ -28,6 +28,7 @@ export function OrderPayment({ url }: { url: string }) {
     <div data-status={status ?? ''} data-error={error ?? ''}>
       <PspCheckout {...props} />
       <PspCheckout url={url} />
+      <PspCheckout url={url} checkoutOrigin="http://localhost:5180" />
     </div>
   );
 }
@@ -36,4 +37,8 @@ export const describeEvent = (event: PspCheckoutEvent): string =>
   event.type === 'resize' ? String(event.height) : event.type === 'error' ? event.code : event.status;
 
 export const mount = (element: HTMLElement, url: string): PspCheckoutInstance =>
-  mountPspCheckout(element, { url, onPaid: (event) => console.log(event.invoiceId) });
+  mountPspCheckout(element, {
+    url,
+    checkoutOrigin: PSP_CHECKOUT_ORIGIN,
+    onPaid: (event) => console.log(event.invoiceId),
+  });

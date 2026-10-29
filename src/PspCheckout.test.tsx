@@ -3,7 +3,19 @@ import { StrictMode } from 'react';
 import { hydrateRoot, type Root } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { INVOICE_ID, ORIGIN, URL_1, URL_2, message, postFrom, ready, resize, spies, status } from '../test/helpers';
+import {
+  INVOICE_ID,
+  ORIGIN,
+  URL_1,
+  URL_2,
+  message,
+  onFrameSrc,
+  postFrom,
+  ready,
+  resize,
+  spies,
+  status,
+} from '../test/helpers';
 import { PspCheckout, type PspCheckoutProps } from './PspCheckout';
 
 afterEach(() => {
@@ -160,8 +172,9 @@ describe('<PspCheckout> accepts only its own frame', () => {
     const { handlers, post } = mount();
     for (const origin of [
       'https://evil.example',
-      'http://pay.psp.example',
-      'https://pay.psp.example:444',
+      'http://pay.psp.qubiq.cc',
+      'https://pay.psp.qubiq.cc:444',
+      'https://x.pay.psp.qubiq.cc',
       'null',
       '',
     ]) {
@@ -269,9 +282,11 @@ describe('<PspCheckout> props over time', () => {
 
 describe('<PspCheckout> invalid url', () => {
   it.each([
-    'http://pay.psp.example/#v1.a.b',
-    'https://pay.psp.example/',
-    'https://pay.psp.example/#',
+    'http://pay.psp.qubiq.cc/#v1.a.b',
+    'https://pay.psp.qubiq.cc/',
+    'https://pay.psp.qubiq.cc/#',
+    'https://evil.example/#v1.a.b',
+    'http://localhost:5180/#v1.a.b',
     '/#v1.a.b',
     'javascript:alert(1)//#x',
     '',
@@ -287,25 +302,96 @@ describe('<PspCheckout> invalid url', () => {
     const onError = vi.fn();
     const { rerender } = render(
       <StrictMode>
-        <PspCheckout url="https://pay.psp.example/" onError={onError} />
+        <PspCheckout url="https://pay.psp.qubiq.cc/" onError={onError} />
       </StrictMode>,
     );
     expect(onError).toHaveBeenCalledTimes(1);
     rerender(
       <StrictMode>
-        <PspCheckout url="http://pay.psp.example/#t" onError={onError} />
+        <PspCheckout url="http://pay.psp.qubiq.cc/#t" onError={onError} />
       </StrictMode>,
     );
     expect(onError).toHaveBeenCalledTimes(2);
   });
+});
 
-  it('accepts http on localhost for development', () => {
-    const { frame, handlers, post } = mount({ url: 'http://localhost:5180/#v1.a.b' });
-    expect(frame()!.getAttribute('src')).toBe('http://localhost:5180/#v1.a.b');
+describe('<PspCheckout> checkoutOrigin', () => {
+  it('trusts only https://pay.psp.qubiq.cc by default: a link of another page is not rendered', () => {
+    const { container, handlers } = mount({ url: 'https://evil.example/#v1.a.b' });
+    expect(container.innerHTML).toBe('');
+    expect(handlers.onError).toHaveBeenCalledExactlyOnceWith('link_invalid', undefined);
+  });
+
+  it('takes the origin of your own stand, http on localhost for development', () => {
+    const url = 'http://localhost:5180/#v1.a.b';
+    const { frame, handlers, post } = mount({ url, checkoutOrigin: 'http://localhost:5180' });
+    expect(frame()!.getAttribute('src')).toBe(url);
     post(ready(), { origin: ORIGIN });
     post(ready(), { origin: 'http://localhost:5180' });
     expect(handlers.onReady).toHaveBeenCalledTimes(1);
     expect(handlers.onError).not.toHaveBeenCalled();
+  });
+
+  it('refuses a platform link when another origin is configured, and a bad origin', () => {
+    expect(mount({ checkoutOrigin: 'https://pay.stage.example' }).container.innerHTML).toBe('');
+    cleanup();
+    for (const checkoutOrigin of ['http://pay.psp.qubiq.cc', 'https://pay.psp.qubiq.cc/pay', 'pay.psp.qubiq.cc', '']) {
+      const { container, handlers } = mount({ checkoutOrigin });
+      expect(container.innerHTML).toBe('');
+      expect(handlers.onError).toHaveBeenCalledExactlyOnceWith('link_invalid', undefined);
+      cleanup();
+    }
+  });
+
+  it('accepts the origin with a trailing slash', () => {
+    const { frame } = mount({ checkoutOrigin: 'https://pay.psp.qubiq.cc/' });
+    expect(frame()!.getAttribute('src')).toBe(URL_1);
+  });
+
+  it('reports again when the origin changes for the same refused url', () => {
+    const onError = vi.fn();
+    const url = 'https://pay.stage.example/#t';
+    const { rerender } = render(<PspCheckout url={url} onError={onError} />);
+    rerender(<PspCheckout url={url} onError={onError} checkoutOrigin="https://pay.other.example" />);
+    expect(onError).toHaveBeenCalledTimes(2);
+    rerender(<PspCheckout url={url} onError={onError} checkoutOrigin="https://pay.stage.example" />);
+    expect(onError).toHaveBeenCalledTimes(2);
+    expect(document.querySelector('iframe')?.getAttribute('src')).toBe(url);
+  });
+});
+
+describe('<PspCheckout> loads the page only after it listens', () => {
+  it('handles a ready posted at the moment the iframe gets its src', () => {
+    onFrameSrc((iframe) => {
+      postFrom(iframe, ready('paid'));
+    });
+    const { handlers, frame } = mount();
+    expect(frame()!.getAttribute('src')).toBe(URL_1);
+    expect(handlers.onReady).toHaveBeenCalledTimes(1);
+    expect(handlers.onPaid).toHaveBeenCalledTimes(1);
+  });
+
+  it('sets src once, also under StrictMode and on re-renders', () => {
+    const sources: string[] = [];
+    onFrameSrc((iframe) => sources.push(iframe.getAttribute('src')!));
+    const handlers = spies();
+    const view = render(
+      <StrictMode>
+        <PspCheckout url={URL_1} {...handlers} />
+      </StrictMode>,
+    );
+    view.rerender(
+      <StrictMode>
+        <PspCheckout url={URL_1} {...handlers} title="Оплата" />
+      </StrictMode>,
+    );
+    expect(sources).toEqual([URL_1]);
+    view.rerender(
+      <StrictMode>
+        <PspCheckout url={URL_2} {...handlers} />
+      </StrictMode>,
+    );
+    expect(sources).toEqual([URL_1, URL_2]);
   });
 });
 
@@ -315,7 +401,9 @@ describe('<PspCheckout> server render and hydration', () => {
     const container = document.createElement('div');
     container.innerHTML = renderToString(<PspCheckout url={URL_1} minHeight={520} />);
     document.body.appendChild(container);
-    const serverFrame = container.querySelector('iframe');
+    const serverFrame = container.querySelector('iframe')!;
+    // The server markup does not load the page: nobody listens to it before hydration
+    expect(serverFrame.hasAttribute('src')).toBe(false);
     const onReady = vi.fn();
     let root: Root | undefined;
     act(() => {
@@ -323,6 +411,7 @@ describe('<PspCheckout> server render and hydration', () => {
     });
     try {
       expect(container.querySelector('iframe')).toBe(serverFrame);
+      expect(serverFrame.getAttribute('src')).toBe(URL_1);
       expect(errors).not.toHaveBeenCalled();
       act(() => {
         postFrom(serverFrame, ready());

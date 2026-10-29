@@ -4,7 +4,7 @@
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
 
-const ORIGIN = 'https://pay.psp.example';
+const ORIGIN = 'https://pay.psp.qubiq.cc';
 const URL = `${ORIGIN}/#v1.eyJrIjoicHNwX3BrX3Rlc3RfM0tkOUxtMlF4N1J0NVZiOE53MUhjNFpwIn0.${'a'.repeat(43)}`;
 const message = (type, fields) => ({ source: 'psp-checkout', v: 1, type, ...fields });
 const ready = (status) =>
@@ -27,8 +27,9 @@ export async function run(load, flavor) {
   // Server render: no window, the iframe is in the markup
   assert(typeof window === 'undefined', 'no window on the server');
   const html = server.renderToString(h(PspCheckout, { url: URL, minHeight: 500 }));
-  assert(html.startsWith('<iframe') && html.includes(`src="${URL}"`) && html.includes('height:500px'), 'SSR markup');
-  assert(server.renderToString(h(PspCheckout, { url: 'http://pay.psp.example/#t' })) === '', 'SSR of a bad url');
+  // No src on the server: the page loads after hydration, when the component listens to it
+  assert(html.startsWith('<iframe') && !html.includes('src=') && html.includes('height:500px'), 'SSR markup');
+  assert(server.renderToString(h(PspCheckout, { url: 'https://evil.example/#t' })) === '', 'SSR of a foreign url');
 
   // Browser: jsdom globals first, then react-dom/client
   const { JSDOM } = createRequire(join(process.env.SMOKE_ROOT, 'package.json'))('jsdom');

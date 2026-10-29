@@ -3,7 +3,7 @@
 React component for the PSP payment widget. It shows the platform's payment page in an `<iframe>` on your site and tells your interface what happens there: the invoice loaded, the status changed, the invoice is paid or expired.
 
 - Your server builds the link with [`@qubiq/psp-sdk`](https://github.com/qubic-psp/node-sdk#payment-widget). This package only renders it and reports events.
-- Messages are accepted only from the payment page origin and from this exact iframe. Every field is type-checked.
+- Only links of the platform payment page are shown, and messages are accepted only from that origin and from this exact iframe. Every field is type-checked.
 - The iframe height follows the page content, so the frame needs no scroll bar of its own.
 - Works with React 18 and 19 and with server rendering (Next.js and other React frameworks).
 - No runtime dependencies. ESM and CommonJS builds with TypeScript types.
@@ -94,24 +94,24 @@ export function OrderPayment({ url }: { url: string }) {
 
 ## Props
 
-| Prop             | Type                                                                  | Default     | What it is                                                                                                              |
-| ---------------- | --------------------------------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `url`            | `string`                                                              | required    | The link from `psp.checkout.createUrl()`. A new value loads the page again, see [Changing the link](#changing-the-link) |
-| `onReady`        | `(event: PspCheckoutReadyEvent) => void`                              |             | The page loaded the invoice (the first data)                                                                            |
-| `onStatusChange` | `(status: InvoiceStatus, event: PspCheckoutStatusSource) => void`     |             | A new invoice status. The first one comes with `ready`, then every change                                               |
-| `onPaid`         | `(event: PspCheckoutStatusSource) => void`                            |             | The invoice is `paid` or `overpaid`. **Once** per `url`                                                                 |
-| `onExpired`      | `(event: PspCheckoutStatusSource) => void`                            |             | The invoice is `expired` or `expired_partial`. **Once** per `url`                                                       |
-| `onError`        | `(code: PspCheckoutErrorCode, event?: PspCheckoutErrorEvent) => void` |             | The page cannot show the invoice, see [error codes](#error-codes)                                                       |
-| `title`          | `string`                                                              | `"Payment"` | Accessible name of the iframe (`title` attribute)                                                                       |
-| `minHeight`      | `number`                                                              | `480`       | Iframe height in px until the page reports its own height                                                               |
-| `className`      | `string`                                                              |             | Class of the iframe                                                                                                     |
-| `style`          | `CSSProperties`                                                       |             | Style of the iframe. `width: 100%`, `border: 0` and `display: block` can be overridden; `height` cannot                 |
+| Prop             | Type                                                                  | Default                      | What it is                                                                                                                                          |
+| ---------------- | --------------------------------------------------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `url`            | `string`                                                              | required                     | The link from `psp.checkout.createUrl()`, delivered by your server. A new value loads the page again, see [Changing the link](#changing-the-link)   |
+| `checkoutOrigin` | `string`                                                              | `"https://pay.psp.qubiq.cc"` | Origin of the payment page. `url` must have exactly this origin, and only its messages are accepted. Set it for your own stand (`PSP_CHECKOUT_URL`) |
+| `onReady`        | `(event: PspCheckoutReadyEvent) => void`                              |                              | The page loaded the invoice (the first data)                                                                                                        |
+| `onStatusChange` | `(status: InvoiceStatus, event: PspCheckoutStatusSource) => void`     |                              | A new invoice status. The first one comes with `ready`, then every change                                                                           |
+| `onPaid`         | `(event: PspCheckoutStatusSource) => void`                            |                              | The invoice is `paid` or `overpaid`. **Once** per `url`                                                                                             |
+| `onExpired`      | `(event: PspCheckoutStatusSource) => void`                            |                              | The invoice is `expired` or `expired_partial`. **Once** per `url`                                                                                   |
+| `onError`        | `(code: PspCheckoutErrorCode, event?: PspCheckoutErrorEvent) => void` |                              | The page cannot show the invoice, see [error codes](#error-codes)                                                                                   |
+| `title`          | `string`                                                              | `"Payment"`                  | Accessible name of the iframe (`title` attribute)                                                                                                   |
+| `minHeight`      | `number`                                                              | `480`                        | Iframe height in px until the page reports its own height                                                                                           |
+| `className`      | `string`                                                              |                              | Class of the iframe                                                                                                                                 |
+| `style`          | `CSSProperties`                                                       |                              | Style of the iframe. `width: 100%`, `border: 0` and `display: block` can be overridden; `height` cannot                                             |
 
-The iframe is rendered as:
+The iframe is rendered as below. It gets `src="{url}"` right after the component starts listening to its messages, so even the first message of the page (`ready`) is never missed.
 
 ```html
 <iframe
-  src="{url}"
   title="Payment"
   allow="clipboard-write"
   referrerpolicy="no-referrer"
@@ -150,14 +150,14 @@ The page itself shows every status to the buyer, with the texts and network warn
 
 ### Error codes
 
-| `code`         | What happened                                                                                 | What to do                                                  |
-| -------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| `link_invalid` | The link is broken or signed with a wrong or revoked key, or `url` is not a payment page link | Check how your server builds the link and which key it uses |
-| `link_expired` | The link is past its expiry                                                                   | Build a new link on your server and pass it as `url`        |
-| `not_found`    | No such invoice for the key of the link                                                       | Check the invoice id and the network of the key             |
-| `unavailable`  | The platform is temporarily unavailable                                                       | Nothing: the page retries by itself                         |
+| `code`         | What happened                                                                                        | What to do                                                                     |
+| -------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `link_invalid` | The link is broken or signed with a wrong or revoked key, or `url` is not a link of `checkoutOrigin` | Check how your server builds the link, which key it uses, and `checkoutOrigin` |
+| `link_expired` | The link is past its expiry                                                                          | Build a new link on your server and pass it as `url`                           |
+| `not_found`    | No such invoice for the key of the link                                                              | Check the invoice id and the network of the key                                |
+| `unavailable`  | The platform is temporarily unavailable                                                              | Nothing: the page retries by itself                                            |
 
-The page shows its own message for each of them. The component renders nothing only for a `url` it refuses itself: not an absolute `https:` URL (`http:` is allowed on localhost), with a login or password, or without the token after `#`. It then calls `onError('link_invalid')` once for that value. Render the component once you have the link, not with an empty placeholder.
+The page shows its own message for each of them. The component renders nothing only for a `url` it refuses itself: of another origin than `checkoutOrigin`, not an absolute `https:` URL (`http:` is allowed on localhost), with a login or password, or without the token after `#`. It then calls `onError('link_invalid')` once for that value. An invalid `checkoutOrigin` (not `https:` outside localhost, or with a path) refuses every link the same way. Render the component once you have the link, not with an empty placeholder.
 
 ### Height
 
@@ -172,7 +172,9 @@ So keep `url` stable while the order page is open: build it on the server once p
 ## Security
 
 - **Ship on webhooks only.** Anyone can post messages to your page or edit your page's JavaScript in their own browser. Treat `onPaid` as a hint for the interface. Your server learns about payments from the signed `invoice.paid` / `invoice.overpaid` webhook (see [Webhooks](https://github.com/qubic-psp/node-sdk#webhooks) of `@qubiq/psp-sdk`).
-- **Origin and source checks are done for you.** A message is accepted only when `event.origin` equals the origin of `url` and `event.source` is the window of this iframe; then `source: 'psp-checkout'`, `v: 1`, the type and every field are checked. Anything else is ignored. Unknown fields are dropped. The messages carry no addresses or amounts.
+- **The link must come from your server.** Pass `url` from your server-rendered page or your own API, never from the address bar, a query parameter, browser storage or a message: anyone can put a link to a look-alike page with their own address there. The component helps: it shows only links of `checkoutOrigin` (`https://pay.psp.qubiq.cc` by default) and refuses any other origin with `link_invalid`. If you run your own payment page stand, set `checkoutOrigin` from the same config as `PSP_CHECKOUT_URL` of `@qubiq/psp-sdk`.
+- **Origin and source checks are done for you.** A message is accepted only when `event.origin` equals `checkoutOrigin` and `event.source` is the window of this iframe; then `source: 'psp-checkout'`, `v: 1`, the type and every field are checked. Anything else is ignored. Unknown fields are dropped. The messages carry no addresses or amounts.
+- **No missed first message.** The page starts loading only after the component listens to it, so a buyer who opens an already paid invoice still triggers `onPaid`.
 - **The secret stays on your server.** The link holds only a signature. Nobody can change the invoice or the branding of a link without breaking it.
 - **The token never reaches a server log.** It stands after `#`, which browsers do not send to servers or in `Referer`. The iframe also has `referrerpolicy="no-referrer"`, so the payment page does not learn the address of your order page.
 - **No `sandbox`.** The payment page lives on another origin, so the browser's same-origin policy already keeps it away from your page, cookies and storage. A sandbox that keeps the page working must allow scripts, same-origin requests and popups (for the blockchain explorer links); what is left of it is mostly a ban on navigating your page, and a stricter one breaks the page. If your policy requires a sandbox anyway, use a plain iframe with at least `sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"`.
@@ -186,13 +188,13 @@ If your site sends a `Content-Security-Policy` header, allow the payment page as
 Content-Security-Policy: …; frame-src https://pay.psp.qubiq.cc
 ```
 
-Use the origin of the links your server builds (`checkoutUrl` / `PSP_CHECKOUT_URL` of `@qubiq/psp-sdk`). Without `frame-src`, `child-src` and then `default-src` apply. Nothing else is needed: the page loads its scripts, styles and data from its own origin, and it can be framed by any `https:` site, so there is no setup on the platform side either.
+Use the origin of the links your server builds (`checkoutUrl` / `PSP_CHECKOUT_URL` of `@qubiq/psp-sdk`, and `checkoutOrigin` of the component). Without `frame-src`, `child-src` and then `default-src` apply. Nothing else is needed: the page loads its scripts, styles and data from its own origin, and it can be framed by any `https:` site, so there is no setup on the platform side either.
 
 The component sets the iframe size through `style`. Styles React sets in the browser are not affected by CSP, but a `style-src` without `'unsafe-inline'` (or a `style-src-attr`) makes browsers drop the `style` attributes of server-rendered HTML. With such a policy, render the widget on the client only (in Next.js, `dynamic(() => import('./order-payment'), { ssr: false })` from a client component).
 
 ## Next.js and server rendering
 
-The component is safe to render on the server: it touches no browser globals during render. The server HTML already contains the iframe, so the page starts loading before hydration; listening to messages starts after hydration. The package entries are marked `'use client'`.
+The component is safe to render on the server: it touches no browser globals during render. The server HTML contains the iframe without `src`, and hydration matches it. The page starts loading after hydration, once the component listens to it: a page that loaded before hydration could send its single `ready` message to nobody, and `onPaid` would never come for an invoice that is already paid. The package entries are marked `'use client'`.
 
 In the App Router, build the link in a server component and pass it to a client component that holds the callbacks (functions cannot be passed from a server component):
 
@@ -245,46 +247,55 @@ const checkout = mountPspCheckout(document.getElementById('payment')!, {
 checkout.destroy();
 ```
 
-`mountPspCheckout()` appends the iframe to the element and returns `{ iframe, destroy }`. The checks and callbacks are those of the component. For an invalid `url` it appends nothing, returns `iframe: null` and calls `onError('link_invalid')`.
+`mountPspCheckout()` appends the iframe to the element, starts listening, then sets `src`, and returns `{ iframe, destroy }`. It takes `checkoutOrigin` too, and the checks and callbacks are those of the component. For an invalid `url` it appends nothing, returns `iframe: null` and calls `onError('link_invalid')`.
 
-A plain iframe works too. Then do the checks yourself:
+A plain iframe works too. Then do the checks yourself, and listen before you set `src`:
 
 ```html
 <iframe
   id="payment"
-  src="{url}"
   title="Payment"
   allow="clipboard-write"
   referrerpolicy="no-referrer"
   style="display:block;width:100%;border:0;height:480px"
 ></iframe>
 <script>
+  const CHECKOUT_ORIGIN = 'https://pay.psp.qubiq.cc'; // not the origin of the url: that one may be anyone's
+  const url = '{url from your server}';
   const frame = document.getElementById('payment');
-  const origin = new URL(frame.src).origin;
+  let thanked = false;
   window.addEventListener('message', (event) => {
-    if (event.origin !== origin || event.source !== frame.contentWindow) return;
+    if (event.origin !== CHECKOUT_ORIGIN || event.source !== frame.contentWindow) return;
     const m = event.data;
     if (!m || m.source !== 'psp-checkout' || m.v !== 1) return;
     if (m.type === 'resize' && typeof m.height === 'number') frame.style.height = Math.min(m.height, 4000) + 'px';
-    if (m.type === 'status' && (m.status === 'paid' || m.status === 'overpaid')) showThankYou(); // the UI only
+    // The first status comes with ready (also for an invoice paid earlier), every change with status
+    const paid = (m.type === 'ready' || m.type === 'status') && (m.status === 'paid' || m.status === 'overpaid');
+    if (paid && !thanked) {
+      thanked = true;
+      showThankYou(); // the interface only: ship on the webhook
+    }
   });
+  if (new URL(url).origin === CHECKOUT_ORIGIN) frame.src = url; // only now: the listener is in place
 </script>
 ```
 
 The messages of the page:
 
-| `type`   | Fields                                 | When                                                  |
-| -------- | -------------------------------------- | ----------------------------------------------------- |
-| `ready`  | `status`, `invoiceId`, `linkExpiresAt` | The first successful load of the invoice              |
-| `status` | `status`, `invoiceId`, `paidAt`        | The invoice status changed                            |
-| `resize` | `height` (px)                          | The content height changed                            |
-| `error`  | `code`                                 | The link does not work or the platform is unavailable |
+| `type`   | Fields                                 | When                                                                        |
+| -------- | -------------------------------------- | --------------------------------------------------------------------------- |
+| `ready`  | `status`, `invoiceId`, `linkExpiresAt` | The first successful load of the invoice, once; it carries the first status |
+| `status` | `status`, `invoiceId`, `paidAt`        | The invoice status changed (only on a change)                               |
+| `resize` | `height` (px)                          | The content height changed                                                  |
+| `error`  | `code`                                 | The link does not work or the platform is unavailable                       |
 
 Each one looks like `{ "source": "psp-checkout", "v": 1, "type": "status", "status": "paid", … }`.
 
 ## Local development
 
-Links of a payment page running on your machine are accepted over plain `http:` on `localhost`, `127.0.0.1` and `[::1]`. Everything else must be `https:`. The payment page lets itself be framed by `http://localhost:*` and `http://127.0.0.1:*`, so you can develop your shop locally against the testnet: build the link with a `psp_pk_test_…` key.
+Your shop can run on your machine against the testnet: build the link with a `psp_pk_test_…` key. The platform payment page lets itself be framed by `http://localhost:*` and `http://127.0.0.1:*`, and the default `checkoutOrigin` stays as is.
+
+If the payment page itself runs on your machine, pass its origin: `<PspCheckout url={url} checkoutOrigin="http://localhost:5180" />`. Plain `http:` is accepted only on `localhost`, `127.0.0.1` and `[::1]`; everything else must be `https:`.
 
 ## TypeScript
 
@@ -293,6 +304,7 @@ The package is written in strict TypeScript. Exported types:
 - `PspCheckoutProps`, `PspCheckoutCallbacks`;
 - `PspCheckoutEvent` — the union of `PspCheckoutReadyEvent`, `PspCheckoutStatusEvent`, `PspCheckoutResizeEvent`, `PspCheckoutErrorEvent`, narrowed by `type`; `PspCheckoutStatusSource` — `ready` or `status`;
 - `InvoiceStatus`, `PspCheckoutErrorCode`;
+- the value `PSP_CHECKOUT_ORIGIN` — `'https://pay.psp.qubiq.cc'`, the default of `checkoutOrigin`;
 - from `@qubiq/psp-react/vanilla`: `MountPspCheckoutOptions`, `PspCheckoutInstance` and the same event types.
 
 `InvoiceStatus` is the same union as in `@qubiq/psp-sdk`.

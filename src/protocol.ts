@@ -42,21 +42,33 @@ const LOCAL_HOSTS: ReadonlySet<string> = new Set(['localhost', '127.0.0.1', '[::
 // A token is at most 4096 characters (20.2); the rest is the page address
 const MAX_URL_LENGTH = 8192;
 
-/**
- * Origin of a payment page link, or `null` when `url` is not one: an absolute `https:` URL (`http:` on localhost),
- * without a login or password, with the token after `#`. The token itself is checked by the page.
- */
-export function checkoutOrigin(url: unknown): string | null {
-  if (typeof url !== 'string' || url.length === 0 || url.length > MAX_URL_LENGTH) return null;
+/** Origin of the platform payment page: the default of the `checkoutOrigin` option. */
+export const PSP_CHECKOUT_ORIGIN = 'https://pay.psp.qubiq.cc';
+
+// An absolute `https:` URL (`http:` on localhost) without a login or password, or null
+function secureUrl(value: unknown): URL | null {
+  if (typeof value !== 'string' || value.length === 0 || value.length > MAX_URL_LENGTH) return null;
   let parsed: URL;
   try {
-    parsed = new URL(url);
+    parsed = new URL(value);
   } catch {
     return null;
   }
   const secure = parsed.protocol === 'https:' || (parsed.protocol === 'http:' && LOCAL_HOSTS.has(parsed.hostname));
-  if (!secure || parsed.username !== '' || parsed.password !== '' || parsed.hash.length <= 1) return null;
-  return parsed.origin;
+  return secure && parsed.username === '' && parsed.password === '' ? parsed : null;
+}
+
+/**
+ * The trusted origin of a payment page link, or `null` when `url` is not one: an absolute `https:` URL (`http:` on
+ * localhost) of exactly the origin `expected`, without a login or password, with the token after `#`. `expected` is
+ * an origin by the same rules (a `/` path is allowed, nothing else). The token itself is checked by the page.
+ */
+export function linkOrigin(url: unknown, expected: unknown = PSP_CHECKOUT_ORIGIN): string | null {
+  const page = secureUrl(expected);
+  if (page === null || page.pathname !== '/' || page.search !== '' || page.hash !== '') return null;
+  const link = secureUrl(url);
+  if (link === null || link.hash.length <= 1 || link.origin !== page.origin) return null;
+  return link.origin;
 }
 
 const isStatus = (value: unknown): value is InvoiceStatus => STATUSES.has(value);
