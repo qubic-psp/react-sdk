@@ -1,12 +1,12 @@
 // mountPspCheckout(container, options) — the same widget as <PspCheckout> without React, for any other frontend:
-// `import { mountPspCheckout } from '@qubiq/psp-react/vanilla'`.
+// `import { mountPspCheckout } from '@qubiq-psp/react/vanilla'`.
 import { DEFAULT_TITLE, createSession, initialHeight, invoke, linkOrigin, listenToFrame } from './protocol';
 import type { PspCheckoutCallbacks } from './types';
 
 /** Options of {@link mountPspCheckout}. */
 export interface MountPspCheckoutOptions extends PspCheckoutCallbacks {
   /**
-   * Link to the payment page from your server: `psp.checkout.createUrl()` of `@qubiq/psp-sdk`. Never take it from
+   * Link to the payment page from your server: `psp.checkout.createUrl()` of `@qubiq-psp/sdk`. Never take it from
    * the address bar, browser storage or messages.
    */
   url: string;

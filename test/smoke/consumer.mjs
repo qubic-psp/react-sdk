@@ -20,8 +20,8 @@ export async function run(load, flavor) {
   };
   const React = await load('react');
   const server = await load('react-dom/server');
-  const { PspCheckout, VERSION } = await load('@qubiq/psp-react');
-  const { mountPspCheckout } = await load('@qubiq/psp-react/vanilla');
+  const { PspCheckout, VERSION } = await load('@qubiq-psp/react');
+  const { mountPspCheckout } = await load('@qubiq-psp/react/vanilla');
   const h = React.createElement;
 
   // Server render: no window, the iframe is in the markup
@@ -78,7 +78,7 @@ export async function run(load, flavor) {
   assert(paid === 1 && box.childElementCount === 0, 'mountPspCheckout');
 
   dom.window.close();
-  console.log(`${flavor} ok — @qubiq/psp-react ${VERSION}, React ${React.version}, Node.js ${process.version}`);
+  console.log(`${flavor} ok — @qubiq-psp/react ${VERSION}, React ${React.version}, Node.js ${process.version}`);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

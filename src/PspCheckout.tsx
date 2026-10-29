@@ -1,5 +1,5 @@
 // <PspCheckout url> — the payment page of the platform in an iframe (gateway docs/20-pay.md, 20.1 and 20.9).
-// The url comes from your server: psp.checkout.createUrl() of @qubiq/psp-sdk.
+// The url comes from your server: psp.checkout.createUrl() of @qubiq-psp/sdk.
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactElement } from 'react';
 import {
   DEFAULT_TITLE,
@@ -15,7 +15,7 @@ import type { PspCheckoutCallbacks } from './types';
 /** Props of {@link PspCheckout}. */
 export interface PspCheckoutProps extends PspCheckoutCallbacks {
   /**
-   * Link to the payment page from your server: `psp.checkout.createUrl()` of `@qubiq/psp-sdk`,
+   * Link to the payment page from your server: `psp.checkout.createUrl()` of `@qubiq-psp/sdk`,
    * `https://pay.psp.qubiq.cc/#v1.<payload>.<signature>`. Never take it from the address bar, browser storage or
    * messages. A new value loads the page again and resets `onPaid` / `onExpired`.
    */

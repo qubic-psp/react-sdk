@@ -1,8 +1,8 @@
-# @qubiq/psp-react
+# @qubiq-psp/react
 
 React component for the PSP payment widget. It shows the platform's payment page in an `<iframe>` on your site and tells your interface what happens there: the invoice loaded, the status changed, the invoice is paid or expired.
 
-- Your server builds the link with [`@qubiq/psp-sdk`](https://github.com/qubic-psp/node-sdk#payment-widget). This package only renders it and reports events.
+- Your server builds the link with [`@qubiq-psp/sdk`](https://github.com/qubic-psp/node-sdk#payment-widget). This package only renders it and reports events.
 - Only links of the platform payment page are shown, and messages are accepted only from that origin and from this exact iframe. Every field is type-checked.
 - The iframe height follows the page content, so the frame needs no scroll bar of its own.
 - Works with React 18 and 19 and with server rendering (Next.js and other React frameworks).
@@ -40,7 +40,7 @@ your server                       your page in the buyer's browser
   (ship the order here)
 ```
 
-1. Your server creates an invoice and builds a payment link with `@qubiq/psp-sdk`. The link carries a token after `#`, signed with your API secret. The secret itself is not in the link, and building a link makes no network call.
+1. Your server creates an invoice and builds a payment link with `@qubiq-psp/sdk`. The link carries a token after `#`, signed with your API secret. The secret itself is not in the link, and building a link makes no network call.
 2. Your page renders `<PspCheckout url={url} />`. The buyer sees the amount, the network, a QR code and the address, and pays from their own wallet.
 3. The page in the frame sends messages to your page. The component checks them and calls your callbacks.
 4. The platform sends your server the `invoice.paid` (or `invoice.overpaid`) webhook. Ship the order there.
@@ -48,18 +48,18 @@ your server                       your page in the buyer's browser
 ## Installation
 
 ```bash
-npm install @qubiq/psp-react
-# or: yarn add @qubiq/psp-react / pnpm add @qubiq/psp-react
+npm install @qubiq-psp/react
+# or: yarn add @qubiq-psp/react / pnpm add @qubiq-psp/react
 ```
 
 Requires React 18 or newer (`react` is a peer dependency). The code targets ES2020 browsers.
 
 ## Quick start
 
-**Server.** Build the link each time you render the order page: it is free, and the default lifetime is 24 hours. See [Payment widget](https://github.com/qubic-psp/node-sdk#payment-widget) in the `@qubiq/psp-sdk` README for branding, locale and lifetime options.
+**Server.** Build the link each time you render the order page: it is free, and the default lifetime is 24 hours. See [Payment widget](https://github.com/qubic-psp/node-sdk#payment-widget) in the `@qubiq-psp/sdk` README for branding, locale and lifetime options.
 
 ```ts
-import { PspClient } from '@qubiq/psp-sdk';
+import { PspClient } from '@qubiq-psp/sdk';
 
 const psp = new PspClient(); // PSP_API_KEY, PSP_API_SECRET, PSP_API_URL, PSP_CHECKOUT_URL from env
 
@@ -73,7 +73,7 @@ const { url } = psp.checkout.createUrl(order.invoiceId, {
 **Page.**
 
 ```tsx
-import { PspCheckout } from '@qubiq/psp-react';
+import { PspCheckout } from '@qubiq-psp/react';
 import { useState } from 'react';
 
 export function OrderPayment({ url }: { url: string }) {
@@ -171,8 +171,8 @@ So keep `url` stable while the order page is open: build it on the server once p
 
 ## Security
 
-- **Ship on webhooks only.** Anyone can post messages to your page or edit your page's JavaScript in their own browser. Treat `onPaid` as a hint for the interface. Your server learns about payments from the signed `invoice.paid` / `invoice.overpaid` webhook (see [Webhooks](https://github.com/qubic-psp/node-sdk#webhooks) of `@qubiq/psp-sdk`).
-- **The link must come from your server.** Pass `url` from your server-rendered page or your own API, never from the address bar, a query parameter, browser storage or a message: anyone can put a link to a look-alike page with their own address there. The component helps: it shows only links of `checkoutOrigin` (`https://pay.psp.qubiq.cc` by default) and refuses any other origin with `link_invalid`. If you run your own payment page stand, set `checkoutOrigin` from the same config as `PSP_CHECKOUT_URL` of `@qubiq/psp-sdk`.
+- **Ship on webhooks only.** Anyone can post messages to your page or edit your page's JavaScript in their own browser. Treat `onPaid` as a hint for the interface. Your server learns about payments from the signed `invoice.paid` / `invoice.overpaid` webhook (see [Webhooks](https://github.com/qubic-psp/node-sdk#webhooks) of `@qubiq-psp/sdk`).
+- **The link must come from your server.** Pass `url` from your server-rendered page or your own API, never from the address bar, a query parameter, browser storage or a message: anyone can put a link to a look-alike page with their own address there. The component helps: it shows only links of `checkoutOrigin` (`https://pay.psp.qubiq.cc` by default) and refuses any other origin with `link_invalid`. If you run your own payment page stand, set `checkoutOrigin` from the same config as `PSP_CHECKOUT_URL` of `@qubiq-psp/sdk`.
 - **Origin and source checks are done for you.** A message is accepted only when `event.origin` equals `checkoutOrigin` and `event.source` is the window of this iframe; then `source: 'psp-checkout'`, `v: 1`, the type and every field are checked. Anything else is ignored. Unknown fields are dropped. The messages carry no addresses or amounts.
 - **No missed first message.** The page starts loading only after the component listens to it, so a buyer who opens an already paid invoice still triggers `onPaid`.
 - **The secret stays on your server.** The link holds only a signature. Nobody can change the invoice or the branding of a link without breaking it.
@@ -188,7 +188,7 @@ If your site sends a `Content-Security-Policy` header, allow the payment page as
 Content-Security-Policy: …; frame-src https://pay.psp.qubiq.cc
 ```
 
-Use the origin of the links your server builds (`checkoutUrl` / `PSP_CHECKOUT_URL` of `@qubiq/psp-sdk`, and `checkoutOrigin` of the component). Without `frame-src`, `child-src` and then `default-src` apply. Nothing else is needed: the page loads its scripts, styles and data from its own origin, and it can be framed by any `https:` site, so there is no setup on the platform side either.
+Use the origin of the links your server builds (`checkoutUrl` / `PSP_CHECKOUT_URL` of `@qubiq-psp/sdk`, and `checkoutOrigin` of the component). Without `frame-src`, `child-src` and then `default-src` apply. Nothing else is needed: the page loads its scripts, styles and data from its own origin, and it can be framed by any `https:` site, so there is no setup on the platform side either.
 
 The component sets the iframe size through `style`. Styles React sets in the browser are not affected by CSP, but a `style-src` without `'unsafe-inline'` (or a `style-src-attr`) makes browsers drop the `style` attributes of server-rendered HTML. With such a policy, render the widget on the client only (in Next.js, `dynamic(() => import('./order-payment'), { ssr: false })` from a client component).
 
@@ -215,7 +215,7 @@ export default async function PayPage({ params }: { params: Promise<{ id: string
 // app/orders/[id]/pay/order-payment.tsx
 'use client';
 
-import { PspCheckout } from '@qubiq/psp-react';
+import { PspCheckout } from '@qubiq-psp/react';
 import { useRouter } from 'next/navigation';
 
 export function OrderPayment({ url }: { url: string }) {
@@ -228,10 +228,10 @@ Without callbacks, a server component can render `<PspCheckout url={url} />` dir
 
 ## Without React
 
-`@qubiq/psp-react/vanilla` has the same widget for any other frontend (Vue, Svelte, Angular, plain JavaScript). It does not import React.
+`@qubiq-psp/react/vanilla` has the same widget for any other frontend (Vue, Svelte, Angular, plain JavaScript). It does not import React.
 
 ```ts
-import { mountPspCheckout } from '@qubiq/psp-react/vanilla';
+import { mountPspCheckout } from '@qubiq-psp/react/vanilla';
 
 const checkout = mountPspCheckout(document.getElementById('payment')!, {
   url,
@@ -305,9 +305,9 @@ The package is written in strict TypeScript. Exported types:
 - `PspCheckoutEvent` — the union of `PspCheckoutReadyEvent`, `PspCheckoutStatusEvent`, `PspCheckoutResizeEvent`, `PspCheckoutErrorEvent`, narrowed by `type`; `PspCheckoutStatusSource` — `ready` or `status`;
 - `InvoiceStatus`, `PspCheckoutErrorCode`;
 - the value `PSP_CHECKOUT_ORIGIN` — `'https://pay.psp.qubiq.cc'`, the default of `checkoutOrigin`;
-- from `@qubiq/psp-react/vanilla`: `MountPspCheckoutOptions`, `PspCheckoutInstance` and the same event types.
+- from `@qubiq-psp/react/vanilla`: `MountPspCheckoutOptions`, `PspCheckoutInstance` and the same event types.
 
-`InvoiceStatus` is the same union as in `@qubiq/psp-sdk`.
+`InvoiceStatus` is the same union as in `@qubiq-psp/sdk`.
 
 ## Versioning
 

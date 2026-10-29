@@ -6,8 +6,8 @@ import {
   type PspCheckoutErrorCode,
   type PspCheckoutEvent,
   type PspCheckoutProps,
-} from '@qubiq/psp-react';
-import { PSP_CHECKOUT_ORIGIN, mountPspCheckout, type PspCheckoutInstance } from '@qubiq/psp-react/vanilla';
+} from '@qubiq-psp/react';
+import { PSP_CHECKOUT_ORIGIN, mountPspCheckout, type PspCheckoutInstance } from '@qubiq-psp/react/vanilla';
 
 export function OrderPayment({ url }: { url: string }) {
   const [status, setStatus] = useState<InvoiceStatus | null>(null);
