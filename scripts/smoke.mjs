@@ -1,5 +1,6 @@
 // yarn smoke — packs the package (npm pack runs the build) and, for every React major of SMOKE_REACT (default
-// "18 19"), installs the tarball with that react, react-dom and @types/react into a temp project. There it runs
+// "18 19"), installs the tarball with that react, react-dom and @types/react into a temp project, without install
+// scripts. SMOKE_TARBALL=<path> checks an already packed tarball instead (the release packs first). There it runs
 // test/smoke/consumer.{mjs,cjs} with import() and require() — a server render, a client render in jsdom with
 // messages of the page, mountPspCheckout() — and type-checks test/smoke/consumer.tsx against the installed
 // declarations without skipLibCheck (moduleResolution bundler and node16). Needs the npm registry for React.
@@ -37,7 +38,9 @@ const tsconfig = (module, moduleResolution) => ({
 });
 
 try {
-  const tarball = run('npm', ['pack', '--silent', '--pack-destination', dir], root).trim().split('\n').pop();
+  const tarball = process.env.SMOKE_TARBALL
+    ? resolve(process.env.SMOKE_TARBALL)
+    : join(dir, run('npm', ['pack', '--silent', '--pack-destination', dir], root).trim().split('\n').pop());
   for (const major of reacts) {
     const project = join(dir, `react-${major}`);
     mkdirSync(project);
@@ -50,7 +53,9 @@ try {
         '--no-audit',
         '--no-fund',
         '--no-package-lock',
-        join(dir, tarball),
+        // React and its typings come from the registry without a lockfile: their scripts never run
+        '--ignore-scripts',
+        tarball,
         `react@${major}`,
         `react-dom@${major}`,
         `@types/react@${major}`,

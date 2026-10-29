@@ -35,8 +35,10 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           cache: yarn
-      # Some dev tools (vite of vitest) declare newer engines; the package itself runs on Node.js 18+ in server renders
+      # The dev tools (vitest 4, vite) need Node.js 20+; the package itself runs on Node.js 18+ in server renders,
+      # which the smoke checks on every version
       - run: yarn install --frozen-lockfile --ignore-engines
       - run: yarn test
+        if: matrix.node != 18
       # Packs the tarball and installs it with React 18 and 19 from the npm registry
       - run: yarn smoke

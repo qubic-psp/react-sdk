@@ -1,6 +1,8 @@
 # Publishes the package to npmjs.com when a tag v<version> is pushed on a commit of main.
 #
-# build   — no secrets: install, all checks, `npm pack`; the tarball goes on as an artifact.
+# build   — no secrets: install from the lockfile, all checks, `npm pack`; the tarball goes on as an artifact. Only
+#           then the smoke installs React from the registry (no lockfile, --ignore-scripts) and checks that very
+#           tarball, which must keep its SHA-256: nothing installed after packing can change what is published.
 # publish — the GitHub environment `npm` (protection rules: required reviewer, tags v* only) holds the secret
 #           NPM_TOKEN; it installs nothing and runs no package scripts: `npm publish <tarball> --ignore-scripts`.
 # Provenance is added for a public repository only (npm refuses it for private ones). After the first publish the
@@ -30,13 +32,25 @@ jobs:
           git merge-base --is-ancestor "$GITHUB_SHA" origin/main
           test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
       - run: yarn install --frozen-lockfile
-      - run: yarn ci
-      - run: npm pack --pack-destination dist-pack
+      - run: yarn ci:release
+      - name: Pack the tarball to publish
+        id: pack
+        run: |
+          npm pack --pack-destination dist-pack
+          file=$(ls dist-pack/*.tgz)
+          echo "file=$file" >> "$GITHUB_OUTPUT"
+          echo "sha256=$(sha256sum "$file" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: package
           path: dist-pack/*.tgz
           if-no-files-found: error
+      # A failed smoke fails this job, and publish does not run
+      - run: yarn smoke
+        env:
+          SMOKE_TARBALL: ${{ steps.pack.outputs.file }}
+      - name: The published tarball is the checked one
+        run: echo "${{ steps.pack.outputs.sha256 }}  ${{ steps.pack.outputs.file }}" | sha256sum --check
 
   publish:
     needs: build

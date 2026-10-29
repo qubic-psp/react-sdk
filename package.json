@@ -66,14 +66,15 @@
     "lockfile:lint": "lockfile-lint --path yarn.lock --type yarn --allowed-hosts yarn --validate-https --validate-integrity",
     "package:check": "publint --strict --pack npm && attw --pack .",
     "prepack": "yarn build",
-    "ci": "yarn lockfile:lint && yarn typecheck && yarn lint && yarn format:check && yarn test && yarn build && yarn package:check && yarn smoke",
+    "ci:release": "yarn lockfile:lint && yarn typecheck && yarn lint && yarn format:check && yarn test && yarn build && yarn package:check",
+    "ci": "yarn ci:release && yarn smoke",
     "smoke": "node scripts/smoke.mjs"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",
     "@testing-library/dom": "^10",
     "@testing-library/react": "^16.3",
-    "@types/node": "^18.19.130",
+    "@types/node": "^20.19.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9.39",
@@ -87,6 +88,11 @@
     "tsup": "^8.5",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46",
-    "vitest": "^3.2"
+    "vite": "^7.3.7",
+    "vitest": "^4.1.12"
+  },
+  "resolutions": {
+    "esbuild": "^0.28.2",
+    "vite": "^7.3.7"
   }
 }
