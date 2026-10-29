@@ -1,6 +1,6 @@
 {
   "name": "@qubiq-psp/react",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "React component for the PSP payment widget: embeds the payment page in an iframe and reports the invoice status",
   "license": "MIT",
   "repository": {
