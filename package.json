@@ -3,6 +3,14 @@
   "version": "0.1.0",
   "description": "React component for the PSP payment widget: embeds the payment page in an iframe and reports the invoice status",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qubic-psp/react-sdk.git"
+  },
+  "homepage": "https://github.com/qubic-psp/react-sdk#readme",
+  "bugs": {
+    "url": "https://github.com/qubic-psp/react-sdk/issues"
+  },
   "type": "module",
   "engines": {
     "node": ">=18"
